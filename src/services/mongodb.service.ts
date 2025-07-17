@@ -64,17 +64,13 @@ export class MongoDBService {
         }
       );
 
-      // 4. Индекс для уникальности по заголовку (защита от дубликатов)
+      // 4. Индекс для поиска по заголовку
       await this.collection.createIndex(
         { title: 1 },
         {
-          name: 'idx_title_unique',
+          name: 'idx_title',
           background: true,
-          unique: true,
-          sparse: true,
-          partialFilterExpression: {
-            title: { $exists: true, $ne: null }
-          }
+          sparse: false
         }
       );
 

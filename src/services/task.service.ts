@@ -2,7 +2,6 @@ import { Task, TaskStatus } from '../models/task.model';
 import { MongoDBService } from './mongodb.service';
 import { RabbitMQService } from './rabbitmq.service';
 import sanitizeHtml from 'sanitize-html';
-import { ValidationError, NotFoundError } from '../types/errors';
 
 export interface CreateTaskData {
   title: string;
