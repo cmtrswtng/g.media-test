@@ -1,0 +1,37 @@
+enum TaskStatus {
+  OPEN
+  IN_PROGRESS
+  COMPLETED
+  EXPIRED
+}
+
+input CreateTaskInput {
+  title: String!
+  description: String
+  dueDate: String!
+  status: TaskStatus
+}
+
+input UpdateTaskInput {
+  title: String
+  description: String
+  status: TaskStatus
+}
+
+type Task {
+  id: ID!
+  title: String!
+  description: String!
+  status: TaskStatus!
+  dueDate: String!
+}
+
+type Query {
+  getTask(id: ID!): Task
+  getTasks(status: TaskStatus): [Task!]!
+}
+
+type Mutation {
+  createTask(input: CreateTaskInput!): Task!
+  updateTask(id: ID!, input: UpdateTaskInput!): Task!
+} 

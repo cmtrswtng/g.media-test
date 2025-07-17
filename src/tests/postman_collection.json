@@ -1,0 +1,1468 @@
+{
+  "info": {
+    "name": "Task Management API - Automated Tests",
+    "description": "Автоматизированные тесты для микросервиса управления задачами с полным покрытием сценариев",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000",
+      "type": "string"
+    },
+    {
+      "key": "apiPrefix",
+      "value": "api/v1",
+      "type": "string"
+    },
+    {
+      "key": "graphqlPath",
+      "value": "graphql",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "🔧 Setup & Environment Tests",
+      "item": [
+        {
+          "name": "Health Check - Server Status",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/health",
+              "host": [
+                "localhost"
+              ],
+              "path": [
+                "health"
+              ],
+              "port": "3000"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Server is running\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response time is acceptable\", function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(1000);",
+                  "});",
+                  "",
+                  "pm.test(\"Content-Type is correct\", function () {",
+                  "    pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/json\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "CORS Headers Check",
+          "request": {
+            "method": "OPTIONS",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "http://localhost:3000"
+              },
+              {
+                "key": "Access-Control-Request-Method",
+                "value": "POST"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}{{apiPrefix}}/tasks",
+              "host": [
+                "localhost"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tasks"
+              ],
+              "port": "3000"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"CORS headers are present\", function () {",
+                  "    pm.expect(pm.response.headers.get(\"Access-Control-Allow-Origin\")).to.not.be.null;",
+                  "    pm.expect(pm.response.headers.get(\"Access-Control-Allow-Methods\")).to.not.be.null;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "📝 REST API - CRUD Operations",
+      "item": [
+        {
+          "name": "Init: Clear taskId",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "pm.collectionVariables.unset('taskId');"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/health",
+              "host": ["localhost"],
+              "path": ["health"],
+              "port": "3000"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Task - Success Case",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Automated Test Task\",\n  \"description\": \"Task created by automated test\",\n  \"dueDate\": \"2024-12-31T23:59:59.000Z\",\n  \"status\": \"открыта\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}{{apiPrefix}}/tasks",
+              "host": [
+                "localhost"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tasks"
+              ],
+              "port": "3000"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 201\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test(\"Response has required fields\", function () {",
+                  "    const response = pm.response.json();",
+                  "    pm.expect(response).to.have.property('_id');",
+                  "    pm.expect(response).to.have.property('title');",
+                  "    pm.expect(response).to.have.property('description');",
+                  "    pm.expect(response).to.have.property('status');",
+                  "    pm.expect(response).to.have.property('dueDate');",
+                  "});",
+                  "",
+                  "pm.test(\"Title matches input\", function () {",
+                  "    const response = pm.response.json();",
+                  "    pm.expect(response.title).to.eql(\"Automated Test Task\");",
+                  "});",
+                  "",
+                  "pm.test(\"Status is correct\", function () {",
+                  "    const response = pm.response.json();",
+                  "    pm.expect(response.status).to.eql(\"открыта\");",
+                  "});",
+                  "",
+                  "pm.test(\"Due date is valid ISO string\", function () {",
+                  "    const response = pm.response.json();",
+                  "    pm.expect(new Date(response.dueDate)).to.be.instanceOf(Date);",
+                  "});",
+                  "",
+                  "// Save task ID for subsequent tests",
+                  "console.log('Create Task response code:', pm.response.code);",
+                  "console.log('Create Task response:', JSON.stringify(pm.response.json()));",
+                  "if (pm.response.code === 201) {",
+                  "    const response = pm.response.json();",
+                  "    console.log('Response _id:', response._id);",
+                  "    if (response._id) {",
+                  "        pm.collectionVariables.set(\"taskIdTest\", response._id);",
+                  "        console.log('taskId set to:', response._id);",
+                  "    } else {",
+                  "        console.log('No _id found in response');",
+                  "        throw new Error('No _id in response: ' + JSON.stringify(response));",
+                  "    }",
+                  "} else {",
+                  "    console.log('Response code is not 201, it is:', pm.response.code);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create Task - Validation Tests",
+          "item": [
+            {
+              "name": "Empty Title",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"title\": \"\",\n  \"description\": \"Test description\",\n  \"dueDate\": \"2024-12-31T23:59:59.000Z\",\n  \"status\": \"открыта\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}{{apiPrefix}}/tasks",
+                  "host": [
+                    "localhost"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "tasks"
+                  ],
+                  "port": "3000"
+                }
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Status code is 400 for empty title\", function () {",
+                      "    pm.response.to.have.status(400);",
+                      "});",
+                      "",
+                      "pm.test(\"Error message mentions title\", function () {",
+                      "    const response = pm.response.json();",
+                      "    pm.expect(response.error).to.include(\"must NOT have fewer than 1 characters\");",
+                      "});"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Title Too Long",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"title\": \"This is a very long title that exceeds the maximum allowed length of 100 characters and should cause a validation error because it is too long\",\n  \"description\": \"Test description\",\n  \"dueDate\": \"2024-12-31T23:59:59.000Z\",\n  \"status\": \"открыта\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}{{apiPrefix}}/tasks",
+                  "host": [
+                    "localhost"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "tasks"
+                  ],
+                  "port": "3000"
+                }
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Status code is 400 for long title\", function () {",
+                      "    pm.response.to.have.status(400);",
+                      "});",
+                      "",
+                      "pm.test(\"Error message mentions length\", function () {",
+                      "    const response = pm.response.json();",
+                      "    pm.expect(response.error).to.include(\"must NOT have more than 100 characters\");",
+                      "});"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Invalid Date Format",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"title\": \"Test Task\",\n  \"description\": \"Test description\",\n  \"dueDate\": \"invalid-date\",\n  \"status\": \"открыта\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}{{apiPrefix}}/tasks",
+                  "host": [
+                    "localhost"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "tasks"
+                  ],
+                  "port": "3000"
+                }
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Status code is 400 for invalid date\", function () {",
+                      "    pm.response.to.have.status(400);",
+                      "});",
+                      "",
+                      "pm.test(\"Error message mentions date\", function () {",
+                      "    const response = pm.response.json();",
+                      "    pm.expect(response.error).to.include('must match format \"date-time\"');",
+                      "});"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Invalid Status",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"title\": \"Test Task\",\n  \"description\": \"Test description\",\n  \"dueDate\": \"2024-12-31T23:59:59.000Z\",\n  \"status\": \"invalid_status\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}{{apiPrefix}}/tasks",
+                  "host": [
+                    "localhost"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "tasks"
+                  ],
+                  "port": "3000"
+                }
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Status code is 400 for invalid status\", function () {",
+                      "    pm.response.to.have.status(400);",
+                      "});",
+                      "",
+                      "pm.test(\"Error message mentions status\", function () {",
+                      "    const response = pm.response.json();",
+                      "    pm.expect(response.error).to.include(\"must be equal to one of the allowed values\");",
+                      "});"
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Get Task by ID - Success",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}{{apiPrefix}}/tasks/{{taskIdTest}}",
+              "host": [
+                "localhost"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tasks",
+                "{{taskIdTest}}"
+              ],
+              "port": "3000"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "console.log('Get Task - taskId value:', pm.collectionVariables.get('taskId'));",
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response has all required fields\", function () {",
+                  "    const response = pm.response.json();",
+                  "    pm.expect(response).to.have.property('_id');",
+                  "    pm.expect(response).to.have.property('title');",
+                  "    pm.expect(response).to.have.property('description');",
+                  "    pm.expect(response).to.have.property('status');",
+                  "    pm.expect(response).to.have.property('dueDate');",
+                  "});",
+                  "",
+                  "pm.test(\"Task ID matches requested ID\", function () {",
+                  "    const response = pm.response.json();",
+                  "    pm.expect(response._id).to.eql(pm.collectionVariables.get(\"taskIdTest\"));",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Task by ID - Not Found",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}{{apiPrefix}}/tasks/507f1f77bcf86cd799439011",
+              "host": [
+                "localhost"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tasks",
+                "507f1f77bcf86cd799439011"
+              ],
+              "port": "3000"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 404 for non-existent task\", function () {",
+                  "    pm.response.to.have.status(404);",
+                  "});",
+                  "",
+                  "pm.test(\"Error message is correct\", function () {",
+                  "    const response = pm.response.json();",
+                  "    pm.expect(response.error).to.eql(\"Task not found\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Tasks - All Tasks",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}{{apiPrefix}}/tasks",
+              "host": [
+                "localhost"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tasks"
+              ],
+              "port": "3000"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response is an array\", function () {",
+                  "    const response = pm.response.json();",
+                  "    pm.expect(response).to.be.an('array');",
+                  "});",
+                  "",
+                  "pm.test(\"Array contains at least one task\", function () {",
+                  "    const response = pm.response.json();",
+                  "    pm.expect(response.length).to.be.at.least(1);",
+                  "});",
+                  "",
+                  "pm.test(\"Each task has required fields\", function () {",
+                  "    const response = pm.response.json();",
+                  "    response.forEach(task => {",
+                  "        pm.expect(task).to.have.property('_id');",
+                  "        pm.expect(task).to.have.property('title');",
+                  "        pm.expect(task).to.have.property('description');",
+                  "        pm.expect(task).to.have.property('status');",
+                  "        pm.expect(task).to.have.property('dueDate');",
+                  "    });",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Tasks - Filter by Status",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}{{apiPrefix}}/tasks?status=открыта",
+              "host": [
+                "localhost"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tasks"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "открыта"
+                }
+              ],
+              "port": "3000"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"All tasks have correct status\", function () {",
+                  "    const response = pm.response.json();",
+                  "    response.forEach(task => {",
+                  "        pm.expect(task.status).to.eql(\"открыта\");",
+                  "    });",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update Task - Success",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Updated Task Title\",\n  \"status\": \"в процессе\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}{{apiPrefix}}/tasks/{{taskIdTest}}",
+              "host": [
+                "localhost"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tasks",
+                "{{taskIdTest}}"
+              ],
+              "port": "3000"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Title was updated\", function () {",
+                  "    const response = pm.response.json();",
+                  "    pm.expect(response.title).to.eql(\"Updated Task Title\");",
+                  "});",
+                  "",
+                  "pm.test(\"Status was updated\", function () {",
+                  "    const response = pm.response.json();",
+                  "    pm.expect(response.status).to.eql(\"в процессе\");",
+                  "});",
+                  "",
+                  "pm.test(\"Other fields remain unchanged\", function () {",
+                  "    const response = pm.response.json();",
+                  "    pm.expect(response).to.have.property('description');",
+                  "    pm.expect(response).to.have.property('dueDate');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update Task - Not Found",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Updated Task Title\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}{{apiPrefix}}/tasks/507f1f77bcf86cd799439011",
+              "host": [
+                "localhost"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tasks",
+                "507f1f77bcf86cd799439011"
+              ],
+              "port": "3000"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 404 for non-existent task\", function () {",
+                  "    pm.response.to.have.status(404);",
+                  "});",
+                  "",
+                  "pm.test(\"Error message is correct\", function () {",
+                  "    const response = pm.response.json();",
+                  "    pm.expect(response.error).to.eql(\"Task not found\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "🔍 GraphQL API Tests",
+      "item": [
+        {
+          "name": "Create Task - GraphQL",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}{{graphqlPath}}",
+              "host": [
+                "localhost"
+              ],
+              "path": [
+                "{{graphqlPath}}"
+              ],
+              "port": "3000"
+            },
+            "body": {
+              "mode": "graphql",
+              "graphql": {
+                "query": "mutation CreateTask($input: CreateTaskInput!) { createTask(input: $input) { id title description status dueDate } }",
+                "variables": "{\n  \"input\": {\n    \"title\": \"GraphQL Test Task\",\n    \"description\": \"GraphQL test description\",\n    \"dueDate\": \"2024-12-31T23:59:59.000Z\",\n    \"status\": \"OPEN\"\n  }\n}"
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"GraphQL response has data\", function () {",
+                  "    const response = pm.response.json();",
+                  "    pm.expect(response).to.have.property('data');",
+                  "    pm.expect(response.data).to.have.property('createTask');",
+                  "});",
+                  "",
+                  "pm.test(\"Task was created successfully\", function () {",
+                  "    const response = pm.response.json();",
+                  "    const task = response.data.createTask;",
+                  "    pm.expect(task.title).to.eql(\"GraphQL Test Task\");",
+                  "    pm.expect(task.description).to.eql(\"GraphQL test description\");",
+                  "    pm.expect(task.status).to.eql(\"OPEN\");",
+                  "});",
+                  "",
+                  "// Save task ID for subsequent tests",
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    console.log('GraphQL Create Task response:', JSON.stringify(response));",
+                  "    if (response.data && response.data.createTask) {",
+                  "        const task = response.data.createTask;",
+                  "        console.log('Created task:', JSON.stringify(task));",
+                  "        // Try both 'id' and '_id' fields",
+                  "        const taskId = task.id || task._id;",
+                  "        if (taskId) {",
+                  "            pm.environment.set(\"graphqlTaskId\", taskId);",
+                  "            console.log('graphqlTaskId set to environment:', taskId);",
+                  "        } else {",
+                  "            console.log('No task ID found in response');",
+                  "            throw new Error('No task ID in GraphQL response: ' + JSON.stringify(task));",
+                  "        }",
+                  "    } else {",
+                  "        console.log('No createTask in response data');",
+                  "    }",
+                  "} else {",
+                  "    console.log('GraphQL Create Task failed with code:', pm.response.code);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Task - GraphQL",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}{{graphqlPath}}",
+              "host": [
+                "localhost"
+              ],
+              "path": [
+                "{{graphqlPath}}"
+              ],
+              "port": "3000"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"query\": \"query GetTask($id: ID!) { getTask(id: $id) { id title description status dueDate } }\",\n  \"variables\": {\n    \"id\": \"{{graphqlTaskId}}\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"GraphQL response has data\", function () {",
+                  "    const response = pm.response.json();",
+                  "    pm.expect(response).to.have.property('data');",
+                  "    pm.expect(response.data).to.have.property('getTask');",
+                  "});",
+                  "",
+                  "pm.test(\"Task ID matches requested ID\", function () {",
+                  "    const response = pm.response.json();",
+                  "    console.log('Get Task - graphqlTaskId value from environment:', pm.environment.get('graphqlTaskId'));",
+                  "    console.log('GraphQL Get Task response:', JSON.stringify(response));",
+                  "    if (response.data && response.data.getTask) {",
+                  "        const task = response.data.getTask;",
+                  "        console.log('Retrieved task:', JSON.stringify(task));",
+                  "        pm.expect(task.id || task._id).to.eql(pm.environment.get(\"graphqlTaskId\"));",
+                  "    } else {",
+                  "        console.log('No getTask in response data');",
+                  "        throw new Error('No task data in GraphQL response');",
+                  "    }",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Tasks - GraphQL",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}{{graphqlPath}}",
+              "host": [
+                "localhost"
+              ],
+              "path": [
+                "{{graphqlPath}}"
+              ],
+              "port": "3000"
+            },
+            "body": {
+              "mode": "graphql",
+              "graphql": {
+                "query": "query GetTasks($status: TaskStatus) { getTasks(status: $status) { id title description status dueDate } }",
+                "variables": "{\n  \"status\": \"OPEN\"\n}"
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"GraphQL response has data\", function () {",
+                  "    const response = pm.response.json();",
+                  "    pm.expect(response).to.have.property('data');",
+                  "    pm.expect(response.data).to.have.property('getTasks');",
+                  "});",
+                  "",
+                  "pm.test(\"Response is an array\", function () {",
+                  "    const response = pm.response.json();",
+                  "    pm.expect(response.data.getTasks).to.be.an('array');",
+                  "});",
+                  "",
+                  "pm.test(\"All tasks have correct status\", function () {",
+                  "    const response = pm.response.json();",
+                  "    response.data.getTasks.forEach(task => {",
+                  "        pm.expect(task.status).to.eql(\"OPEN\");",
+                  "    });",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update Task - GraphQL",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "// Динамически формируем GraphQL variables",
+                  "const taskId = pm.collectionVariables.get('graphqlTaskId');",
+                  "console.log('Pre-request Update: graphqlTaskId =', taskId);",
+                  "if (taskId) {",
+                  "    const variables = {",
+                  "        id: taskId,",
+                  "        input: {",
+                  "            title: \"Updated GraphQL Task\",",
+                  "            status: \"IN_PROGRESS\"",
+                  "        }",
+                  "    };",
+                  "    pm.request.body.graphql.variables = JSON.stringify(variables);",
+                  "    console.log('GraphQL variables set to:', JSON.stringify(variables));",
+                  "} else {",
+                  "    console.log('No graphqlTaskId found for update');",
+                  "    pm.request.body.graphql.variables = '{\"id\": \"\", \"input\": {\"title\": \"Updated GraphQL Task\", \"status\": \"IN_PROGRESS\"}}';",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}{{graphqlPath}}",
+              "host": [
+                "localhost"
+              ],
+              "path": [
+                "{{graphqlPath}}"
+              ],
+              "port": "3000"
+            },
+            "body": {
+              "mode": "graphql",
+              "graphql": {
+                "query": "mutation UpdateTask($id: ID!, $input: UpdateTaskInput!) { updateTask(id: $id, input: $input) { id title description status dueDate } }",
+                "variables": "{\n  \"id\": \"{{graphqlTaskId}}\",\n  \"input\": {\n    \"title\": \"Updated GraphQL Task\",\n    \"status\": \"IN_PROGRESS\"\n  }\n}"
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"GraphQL response has data\", function () {",
+                  "    const response = pm.response.json();",
+                  "    pm.expect(response).to.have.property('data');",
+                  "    pm.expect(response.data).to.have.property('updateTask');",
+                  "});",
+                  "",
+                  "pm.test(\"Task was updated successfully\", function () {",
+                  "    const response = pm.response.json();",
+                  "    const task = response.data.updateTask;",
+                  "    pm.expect(task.title).to.eql(\"Updated GraphQL Task\");",
+                  "    pm.expect(task.status).to.eql(\"IN_PROGRESS\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Test GraphQL with Hardcoded ID",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}{{graphqlPath}}",
+              "host": [
+                "localhost"
+              ],
+              "path": [
+                "{{graphqlPath}}"
+              ],
+              "port": "3000"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"query\": \"query GetTask($id: ID!) { getTask(id: $id) { id title description status dueDate } }\",\n  \"variables\": {\n    \"id\": \"6878ec1bea5a481dcf522565\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"GraphQL response structure\", function () {",
+                  "    const response = pm.response.json();",
+                  "    console.log('Hardcoded ID test response:', JSON.stringify(response));",
+                  "    pm.expect(response).to.have.property('data');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "🛡️ Security & Performance Tests",
+      "item": [
+        {
+          "name": "XSS Protection Test",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Test Task<script>alert('xss')</script>\",\n  \"description\": \"Test description<img src=x onerror=alert('xss')>\",\n  \"dueDate\": \"2024-12-31T23:59:59.000Z\",\n  \"status\": \"открыта\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}{{apiPrefix}}/tasks",
+              "host": [
+                "localhost"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tasks"
+              ],
+              "port": "3000"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "console.log('XSS Test - Response status:', pm.response.code);",
+                  "console.log('XSS Test - Response body:', pm.response.text());",
+                  "",
+                  "pm.test(\"Status code is 201 (task created)\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test(\"XSS content is sanitized\", function () {",
+                  "    const response = pm.response.json();",
+                  "    pm.expect(response.title).to.not.include(\"<script>\");",
+                  "    pm.expect(response.title).to.not.include(\"alert\");",
+                  "    pm.expect(response.title).to.not.include(\"&lt;\");",
+                  "    pm.expect(response.description).to.not.include(\"<img\");",
+                  "    pm.expect(response.description).to.not.include(\"onerror\");",
+                  "    pm.expect(response.description).to.not.include(\"&lt;\");",
+                  "});",
+                  "",
+                  "pm.test(\"Sanitized content is readable\", function () {",
+                  "    const response = pm.response.json();",
+                  "    pm.expect(response.title).to.include(\"Test Task\");",
+                  "    pm.expect(response.description).to.include(\"Test description\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Rate Limiting Test",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}{{apiPrefix}}/tasks",
+              "host": [
+                "localhost"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tasks"
+              ],
+              "port": "3000"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Response time is acceptable\", function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(2000);",
+                  "});",
+                  "",
+                  "pm.test(\"Rate limit headers are present\", function () {",
+                  "    const headers = pm.response.headers.all();",
+                  "    const hasRateLimitHeader = headers.some(header => ",
+                  "        header.key.toLowerCase().includes('rate-limit') || ",
+                  "        header.key.toLowerCase().includes('x-ratelimit')",
+                  "    );",
+                  "    pm.expect(hasRateLimitHeader).to.be.true;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Invalid Content-Type Test",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "text/plain"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Test Task\",\n  \"description\": \"Test description\",\n  \"dueDate\": \"2024-12-31T23:59:59.000Z\",\n  \"status\": \"открыта\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}{{apiPrefix}}/tasks",
+              "host": [
+                "localhost"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tasks"
+              ],
+              "port": "3000"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 400 for invalid content type\", function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "🔗 Integration Tests",
+      "item": [
+        {
+          "name": "Full CRUD Workflow Test",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "if (!pm.environment.get(\"uniqueTaskTitle\")) {",
+                  "  const uniqueId = Date.now();",
+                  "  const uniqueTitle = `Integration Test Task ${uniqueId}`;",
+                  "  pm.environment.set(\"uniqueTaskTitle\", uniqueTitle);",
+                  "  console.log('Pre-request: uniqueTaskTitle set to environment:', uniqueTitle);",
+                  "} else {",
+                  "  console.log('Pre-request: uniqueTaskTitle already set:', pm.environment.get(\"uniqueTaskTitle\"));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "item": [
+            {
+              "name": "1. Create Task",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"title\": \"{{uniqueTaskTitle}}\",\n  \"description\": \"Integration test task\",\n  \"dueDate\": \"2024-12-31T23:59:59.000Z\",\n  \"status\": \"открыта\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}{{apiPrefix}}/tasks",
+                  "host": [
+                    "localhost"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "tasks"
+                  ],
+                  "port": "3000"
+                }
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "console.log('Integration Test - uniqueTaskTitle value:', pm.environment.get('uniqueTaskTitle'));",
+                      "console.log('Integration Test - Response status:', pm.response.code);",
+                      "console.log('Integration Test - Response body:', pm.response.text());",
+                      "",
+                      "pm.test(\"Create task - Status 201\", function () {",
+                      "    pm.response.to.have.status(201);",
+                      "});",
+                      "",
+                      "if (pm.response.code === 201) {",
+                      "    const response = pm.response.json();",
+                      "    console.log('Create Task - Response:', JSON.stringify(response));",
+                      "    console.log('Create Task - Response _id:', response._id);",
+                      "    pm.environment.set(\"integrationTaskId\", response._id);",
+                      "    console.log('Create Task - integrationTaskId set to environment:', response._id);",
+                      "    console.log('Create Task - integrationTaskId from environment:', pm.environment.get('integrationTaskId'));",
+                      "}",
+                      "else {",
+                      "    console.log('Create Task - Failed to create task, status:', pm.response.code);",
+                      "}"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "2. Read Task",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}{{apiPrefix}}/tasks/{{integrationTaskId}}",
+                  "host": [
+                    "localhost"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "tasks",
+                    "{{integrationTaskId}}"
+                  ],
+                  "port": "3000"
+                }
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "console.log('Read Task - integrationTaskId value:', pm.environment.get('integrationTaskId'));",
+                      "console.log('Read Task - Response status:', pm.response.code);",
+                      "console.log('Read Task - Response body:', pm.response.text());",
+                      "",
+                      "pm.test(\"Read task - Status 200\", function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "pm.test(\"Task title matches created task\", function () {",
+                      "    const response = pm.response.json();",
+                      "    pm.expect(response.title).to.eql(pm.environment.get(\"uniqueTaskTitle\"));",
+                      "});"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "3. Update Task",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"title\": \"Updated Integration Task\",\n  \"status\": \"завершена\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}{{apiPrefix}}/tasks/{{integrationTaskId}}",
+                  "host": [
+                    "localhost"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "tasks",
+                    "{{integrationTaskId}}"
+                  ],
+                  "port": "3000"
+                }
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Update task - Status 200\", function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "pm.test(\"Task was updated correctly\", function () {",
+                      "    const response = pm.response.json();",
+                      "    pm.expect(response.title).to.eql(\"Updated Integration Task\");",
+                      "    pm.expect(response.status).to.eql(\"завершена\");",
+                      "});"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "4. Verify in List",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}{{apiPrefix}}/tasks?status=завершена",
+                  "host": [
+                    "localhost"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "tasks"
+                  ],
+                  "query": [
+                    {
+                      "key": "status",
+                      "value": "завершена"
+                    }
+                  ],
+                  "port": "3000"
+                }
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"List tasks - Status 200\", function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "pm.test(\"Updated task appears in filtered list\", function () {",
+                      "    const response = pm.response.json();",
+                      "    const updatedTask = response.find(task => task._id === pm.environment.get(\"integrationTaskId\"));",
+                      "    pm.expect(updatedTask).to.not.be.undefined;",
+                      "    pm.expect(updatedTask.title).to.eql(\"Updated Integration Task\");",
+                      "    pm.expect(updatedTask.status).to.eql(\"завершена\");",
+                      "});"
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "📊 Performance & Load Tests",
+      "item": [
+        {
+          "name": "Response Time Test",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}{{apiPrefix}}/tasks",
+              "host": [
+                "localhost"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tasks"
+              ],
+              "port": "3000"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Response time is under 500ms\", function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(500);",
+                  "});",
+                  "",
+                  "pm.test(\"Response time is under 1 second\", function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(1000);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Concurrent Requests Test",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}{{apiPrefix}}/tasks",
+              "host": [
+                "localhost"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tasks"
+              ],
+              "port": "3000"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Concurrent request succeeds\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response time is acceptable under load\", function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(2000);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

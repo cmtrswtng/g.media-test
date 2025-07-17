@@ -1,0 +1,135 @@
+{
+  "tasks": [
+    {
+      "title": "Разработка API документации",
+      "description": "Создать полную документацию для REST и GraphQL API с примерами запросов и ответов",
+      "dueDate": "2024-12-31T23:59:59.000Z",
+      "status": "открыта"
+    },
+    {
+      "title": "Интеграция с RabbitMQ",
+      "description": "Настроить асинхронную обработку задач через RabbitMQ для улучшения производительности",
+      "dueDate": "2024-12-25T18:00:00.000Z",
+      "status": "в процессе"
+    },
+    {
+      "title": "Тестирование безопасности",
+      "description": "Провести аудит безопасности API, включая проверку на XSS, SQL инъекции и авторизацию",
+      "dueDate": "2024-12-20T12:00:00.000Z",
+      "status": "завершена"
+    },
+    {
+      "title": "Оптимизация производительности",
+      "description": "Оптимизировать запросы к MongoDB, добавить индексы и кэширование",
+      "dueDate": "2024-12-28T15:30:00.000Z",
+      "status": "открыта"
+    },
+    {
+      "title": "Мониторинг и логирование",
+      "description": "Настроить систему мониторинга с метриками производительности и детальным логированием",
+      "dueDate": "2024-12-22T09:00:00.000Z",
+      "status": "в процессе"
+    }
+  ],
+  "invalidTasks": [
+    {
+      "title": "",
+      "description": "Задача с пустым заголовком",
+      "dueDate": "2024-12-31T23:59:59.000Z",
+      "status": "открыта",
+      "expectedError": "Title is required"
+    },
+    {
+      "title": "Очень длинный заголовок задачи который превышает максимально допустимую длину в сто символов и должен вызвать ошибку валидации",
+      "description": "Задача с слишком длинным заголовком",
+      "dueDate": "2024-12-31T23:59:59.000Z",
+      "status": "открыта",
+      "expectedError": "Title too long"
+    },
+    {
+      "title": "Задача с неверной датой",
+      "description": "Задача с неправильным форматом даты",
+      "dueDate": "invalid-date-format",
+      "status": "открыта",
+      "expectedError": "Invalid date format"
+    },
+    {
+      "title": "Задача с неверным статусом",
+      "description": "Задача с неподдерживаемым статусом",
+      "dueDate": "2024-12-31T23:59:59.000Z",
+      "status": "неизвестный_статус",
+      "expectedError": "Invalid status"
+    }
+  ],
+  "xssPayloads": [
+    {
+      "title": "<script>alert('XSS')</script>Тестовая задача",
+      "description": "<img src=x onerror=alert('XSS')>Описание с XSS",
+      "dueDate": "2024-12-31T23:59:59.000Z",
+      "status": "открыта",
+      "expectedSanitized": {
+        "title": "Тестовая задача",
+        "description": "Описание с XSS"
+      }
+    },
+    {
+      "title": "javascript:alert('XSS') Задача",
+      "description": "<iframe src=\"javascript:alert('XSS')\"></iframe>Описание",
+      "dueDate": "2024-12-31T23:59:59.000Z",
+      "status": "открыта",
+      "expectedSanitized": {
+        "title": "Задача",
+        "description": "Описание"
+      }
+    }
+  ],
+  "graphqlQueries": {
+    "createTask": {
+      "query": "mutation CreateTask($input: CreateTaskInput!) { createTask(input: $input) { id title description status dueDate } }",
+      "variables": {
+        "input": {
+          "title": "GraphQL Test Task",
+          "description": "Task created via GraphQL mutation",
+          "dueDate": "2024-12-31T23:59:59.000Z",
+          "status": "OPEN"
+        }
+      }
+    },
+    "getTask": {
+      "query": "query GetTask($id: ID!) { getTask(id: $id) { id title description status dueDate } }",
+      "variables": {
+        "id": "{{graphqlTaskId}}"
+      }
+    },
+    "getTasks": {
+      "query": "query GetTasks($status: TaskStatus) { getTasks(status: $status) { id title description status dueDate } }",
+      "variables": {
+        "status": "OPEN"
+      }
+    },
+    "updateTask": {
+      "query": "mutation UpdateTask($id: ID!, $input: UpdateTaskInput!) { updateTask(id: $id, input: $input) { id title description status dueDate } }",
+      "variables": {
+        "id": "{{graphqlTaskId}}",
+        "input": {
+          "title": "Updated GraphQL Task",
+          "status": "IN_PROGRESS"
+        }
+      }
+    }
+  },
+  "performanceTests": {
+    "concurrentRequests": 10,
+    "maxResponseTime": 2000,
+    "expectedSuccessRate": 95
+  },
+  "securityTests": {
+    "rateLimitRequests": 100,
+    "rateLimitWindow": 60000,
+    "expectedRateLimitHeaders": [
+      "X-RateLimit-Limit",
+      "X-RateLimit-Remaining",
+      "X-RateLimit-Reset"
+    ]
+  }
+} 
