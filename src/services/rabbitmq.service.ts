@@ -1,5 +1,6 @@
 import * as amqp from 'amqplib';
 import { getConfig } from '../config/app.config';
+import { ILogger } from '../types/logger.interface';
 
 export interface TaskAction {
   taskId: string;
@@ -11,8 +12,11 @@ export class RabbitMQService {
   private connection: amqp.Connection | null = null;
   private channel: amqp.Channel | null = null;
   private readonly config = getConfig();
+  private logger: ILogger;
 
-  constructor(private url: string) {}
+  constructor(private url: string, logger: ILogger) {
+    this.logger = logger;
+  }
 
   async connect(): Promise<void> {
     try {
@@ -32,9 +36,9 @@ export class RabbitMQService {
         this.config.database.rabbitmq.routingKey
       );
       
-      console.log('Connected to RabbitMQ');
+      this.logger.info('Connected to RabbitMQ');
     } catch (error) {
-      console.error('Failed to connect to RabbitMQ:', error);
+      this.logger.error('Failed to connect to RabbitMQ:', error);
       throw error;
     }
   }
@@ -47,9 +51,9 @@ export class RabbitMQService {
       if (this.connection) {
         await (this.connection as any).close();
       }
-      console.log('Disconnected from RabbitMQ');
+      this.logger.info('Disconnected from RabbitMQ');
     } catch (error) {
-      console.error('Error disconnecting from RabbitMQ:', error);
+      this.logger.error('Error disconnecting from RabbitMQ:', error);
     }
   }
 
@@ -70,7 +74,7 @@ export class RabbitMQService {
       throw new Error('Failed to publish message to RabbitMQ');
     }
     
-    console.log(`Published task action: ${message}`);
+    this.logger.info(`Published task action: ${message}`);
   }
 
   async consumeTaskActions(callback: (taskAction: TaskAction) => void): Promise<void> {
@@ -85,13 +89,13 @@ export class RabbitMQService {
           callback(taskAction);
           this.channel.ack(msg);
         } catch (error) {
-          console.error('Error processing message:', error);
+          this.logger.error('Error processing message:', error);
           this.channel.nack(msg, false, false);
         }
       }
     });
 
-    console.log('Started consuming task actions');
+    this.logger.info('Started consuming task actions');
   }
 
   async publishTaskCreated(taskId: string): Promise<void> {

@@ -1,13 +1,16 @@
-import { MongoClient, Db, Collection, ObjectId, IndexSpecification } from 'mongodb';
+import { MongoClient, Db, Collection, ObjectId } from 'mongodb';
 import { Task, TaskStatus } from '../models/task.model';
+import { ILogger } from '../types/logger.interface';
 
 export class MongoDBService {
   private client: MongoClient;
   private db: Db | null = null;
   private collection: Collection<Task> | null = null;
+  private logger: ILogger;
 
-  constructor(private uri: string, private dbName: string) {
+  constructor(private uri: string, private dbName: string, logger: ILogger) {
     this.client = new MongoClient(uri);
+    this.logger = logger;
   }
 
   async connect(): Promise<void> {
@@ -18,9 +21,9 @@ export class MongoDBService {
 
       await this.createIndexes();
 
-      console.log('Connected to MongoDB');
+      this.logger.info('Connected to MongoDB');
     } catch (error) {
-      console.error('Failed to connect to MongoDB:', error);
+      this.logger.error('Failed to connect to MongoDB:', error);
       throw error;
     }
   }
@@ -84,16 +87,16 @@ export class MongoDBService {
         }
       );
 
-      console.log('MongoDB indexes created successfully');
+      this.logger.info('MongoDB indexes created successfully');
     } catch (error) {
-      console.error('Failed to create indexes:', error);
+      this.logger.error('Failed to create indexes:', error);
       // Не прерываем подключение, если индексы не создались
     }
   }
 
   async disconnect(): Promise<void> {
     await this.client.close();
-    console.log('Disconnected from MongoDB');
+    this.logger.info('Disconnected from MongoDB');
   }
 
   async isConnected(): Promise<boolean> {

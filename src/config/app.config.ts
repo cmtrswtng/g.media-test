@@ -36,6 +36,7 @@ export interface AppConfig {
   };
   logging: {
     level: string;
+    file: string;
   };
 }
 
@@ -77,7 +78,8 @@ export function getConfig(): AppConfig {
       prefix: process.env.API_PREFIX || '/api/v1'
     },
     logging: {
-      level: process.env.LOG_LEVEL || 'info'
+      level: process.env.LOG_LEVEL || 'info',
+      file: process.env.LOG_FILE || 'logs/app.log'
     }
   };
 } 

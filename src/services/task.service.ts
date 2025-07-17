@@ -2,6 +2,7 @@ import { Task, TaskStatus } from '../models/task.model';
 import { MongoDBService } from './mongodb.service';
 import { RabbitMQService } from './rabbitmq.service';
 import sanitizeHtml from 'sanitize-html';
+import { ILogger } from '../types/logger.interface';
 
 export interface CreateTaskData {
   title: string;
@@ -22,7 +23,8 @@ export class TaskService {
 
   constructor(
     private mongoService: MongoDBService,
-    private rabbitmqService: RabbitMQService
+    private rabbitmqService: RabbitMQService,
+    private logger: ILogger
   ) {}
 
   private sanitizeInput(input: string): string {
@@ -104,7 +106,7 @@ export class TaskService {
     try {
       await this.rabbitmqService.publishTaskCreated(createdTask._id!.toString());
     } catch (error) {
-      console.error('Failed to publish task created event:', error);
+      this.logger.error('Failed to publish task created event:', error);
       // Не прерываем создание задачи из-за ошибки RabbitMQ
     }
     
@@ -154,7 +156,7 @@ export class TaskService {
       try {
         await this.rabbitmqService.publishTaskUpdated(id);
       } catch (error) {
-        console.error('Failed to publish task updated event:', error);
+        this.logger.error('Failed to publish task updated event:', error);
         // Не прерываем обновление задачи из-за ошибки RabbitMQ
       }
     }
