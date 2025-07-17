@@ -1,4 +1,5 @@
 import * as amqp from 'amqplib';
+import { getConfig } from '../config/app.config';
 
 export interface TaskAction {
   taskId: string;
@@ -9,9 +10,7 @@ export interface TaskAction {
 export class RabbitMQService {
   private connection: amqp.Connection | null = null;
   private channel: amqp.Channel | null = null;
-  private readonly exchangeName = 'task.exchange';
-  private readonly queueName = 'task.actions';
-  private readonly routingKey = 'task.action';
+  private readonly config = getConfig();
 
   constructor(private url: string) {}
 
@@ -21,13 +20,17 @@ export class RabbitMQService {
       this.channel = await (this.connection as any).createChannel() as amqp.Channel;
       
       // Создаем Direct Exchange
-      await this.channel.assertExchange(this.exchangeName, 'direct', { durable: true });
+      await this.channel.assertExchange(this.config.database.rabbitmq.exchangeName, 'direct', { durable: true });
       
       // Создаем очередь
-      await this.channel.assertQueue(this.queueName, { durable: true });
+      await this.channel.assertQueue(this.config.database.rabbitmq.queueName, { durable: true });
       
       // Привязываем очередь к Exchange с routing key
-      await this.channel.bindQueue(this.queueName, this.exchangeName, this.routingKey);
+      await this.channel.bindQueue(
+        this.config.database.rabbitmq.queueName,
+        this.config.database.rabbitmq.exchangeName,
+        this.config.database.rabbitmq.routingKey
+      );
       
       console.log('Connected to RabbitMQ');
     } catch (error) {
@@ -57,8 +60,8 @@ export class RabbitMQService {
 
     const message = JSON.stringify(taskAction);
     const success = this.channel.publish(
-      this.exchangeName,
-      this.routingKey,
+      this.config.database.rabbitmq.exchangeName,
+      this.config.database.rabbitmq.routingKey,
       Buffer.from(message),
       { persistent: true }
     );
@@ -75,7 +78,7 @@ export class RabbitMQService {
       throw new Error('RabbitMQ not connected');
     }
 
-    await this.channel.consume(this.queueName, (msg: amqp.Message | null) => {
+    await this.channel.consume(this.config.database.rabbitmq.queueName, (msg: amqp.Message | null) => {
       if (msg && this.channel) {
         try {
           const taskAction: TaskAction = JSON.parse(msg.content.toString());

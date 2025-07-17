@@ -12,11 +12,15 @@ import { TaskService } from './services/task.service';
 import { TaskController } from './controllers/task.controller';
 import { createResolvers } from './graphql/resolvers';
 import { taskRoutes } from './routes/task.routes';
+import { getConfig } from './config/app.config';
 import { GraphQLResolveInfo } from 'graphql';
+
+// Получаем конфигурацию приложения
+const config = getConfig();
 
 // Создаем pino логгер
 const logger = pino({
-  level: process.env.LOG_LEVEL || 'info',
+  level: config.logging.level,
   timestamp: pino.stdTimeFunctions.isoTime,
   formatters: {
     level: (label: string) => {
@@ -35,20 +39,20 @@ class Application {
   constructor() {
     this.fastify = Fastify({
       logger: {
-        level: process.env.LOG_LEVEL || 'info'
+        level: config.logging.level
       },
       trustProxy: true,
-      requestTimeout: parseInt(process.env.REQUEST_TIMEOUT || '30000', 10)
+      requestTimeout: config.server.requestTimeout
     });
 
-    // Инициализация сервисов
+    // Инициализация сервисов с использованием конфигурации
     this.mongoService = new MongoDBService(
-      process.env.MONGODB_URI || 'mongodb://localhost:27017/task-management',
-      process.env.MONGODB_DB_NAME || 'task-management'
+      config.database.mongodb.uri,
+      config.database.mongodb.dbName
     );
     
     this.rabbitmqService = new RabbitMQService(
-      process.env.RABBITMQ_URL || 'amqp://localhost:5672'
+      config.database.rabbitmq.url
     );
     
     this.taskService = new TaskService(this.mongoService, this.rabbitmqService);
@@ -59,14 +63,14 @@ class Application {
     try {
       // Настройка CORS
       await this.fastify.register(import('@fastify/cors'), {
-        origin: process.env.CORS_ORIGIN || 'http://localhost:3000',
-        credentials: true
+        origin: config.security.cors.origin,
+        credentials: config.security.cors.credentials
       });
 
       // Настройка Rate Limiting
       await this.fastify.register(import('@fastify/rate-limit'), {
-        max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '100', 10),
-        timeWindow: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '900000', 10)
+        max: config.security.rateLimit.max,
+        timeWindow: config.security.rateLimit.timeWindow
       });
 
       // Настройка обработчика ошибок валидации
@@ -134,9 +138,8 @@ class Application {
       await apollo.start();
 
       // Регистрация GraphQL handler
-      const graphqlPath = process.env.GRAPHQL_PATH || '/graphql';
       this.fastify.route({
-        url: graphqlPath,
+        url: config.graphql.path,
         method: ['POST', 'OPTIONS'],
         handler: fastifyApolloHandler(apollo as ApolloServer<BaseContext>)
       });
@@ -165,15 +168,14 @@ class Application {
       this.setupGracefulShutdown();
 
       // Запуск сервера
-      const port = parseInt(process.env.PORT || '3000', 10);
-      const host = process.env.HOST || '0.0.0.0';
+      await this.fastify.listen({
+        port: config.server.port,
+        host: config.server.host
+      });
       
-      await this.fastify.listen({ port, host });
-      
-      const apiPrefix = process.env.API_PREFIX || '/api/v1';
-      logger.info(`Server is running on http://${host}:${port}`);
-      logger.info(`REST API: http://${host}:${port}${apiPrefix}`);
-      logger.info(`GraphQL endpoint: http://${host}:${port}${graphqlPath}`);
+      logger.info(`Server is running on http://${config.server.host}:${config.server.port}`);
+      logger.info(`REST API: http://${config.server.host}:${config.server.port}${config.api.prefix}`);
+      logger.info(`GraphQL endpoint: http://${config.server.host}:${config.server.port}${config.graphql.path}`);
       logger.info('Environment:', process.env.NODE_ENV || 'development');
       
     } catch (error) {

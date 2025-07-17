@@ -6,30 +6,31 @@ import {
   getTaskSchema,
   getTasksSchema
 } from '../schemas/task.schema';
+import { getConfig } from '../config/app.config';
 
 export async function taskRoutes(fastify: FastifyInstance, taskController: TaskController) {
-  const apiPrefix = process.env.API_PREFIX || '/api/v1';
+  const config = getConfig();
   
   // POST /tasks - создание задачи
-  fastify.post(`${apiPrefix}/tasks`, {
+  fastify.post(`${config.api.prefix}/tasks`, {
     schema: createTaskSchema,
     handler: taskController.createTask.bind(taskController)
   });
 
   // GET /tasks/:id - получение задачи по ID
-  fastify.get(`${apiPrefix}/tasks/:id`, {
+  fastify.get(`${config.api.prefix}/tasks/:id`, {
     schema: getTaskSchema,
     handler: taskController.getTask.bind(taskController)
   });
 
   // GET /tasks - получение списка задач
-  fastify.get(`${apiPrefix}/tasks`, {
+  fastify.get(`${config.api.prefix}/tasks`, {
     schema: getTasksSchema,
     handler: taskController.getTasks.bind(taskController)
   });
 
   // PATCH /tasks/:id - обновление задачи
-  fastify.patch(`${apiPrefix}/tasks/:id`, {
+  fastify.patch(`${config.api.prefix}/tasks/:id`, {
     schema: updateTaskSchema,
     handler: taskController.updateTask.bind(taskController)
   });
